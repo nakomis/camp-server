@@ -37,8 +37,8 @@ public class MockWebPlatform {
                 .instantiator(MockAssemblyTemplateInstantiator.class)
                 .build();
 
-    public static final PdpMatcher WAR_GETS_WAR_MATCHER = new PdpMatcher.ArtifactMatcher("com.java:WAR") {
-        public boolean apply(Object art, AssemblyTemplateConstructor atc) {
+    public static final PdpMatcher<ApplicationComponentTemplate> WAR_GETS_WAR_MATCHER = new PdpMatcher.ArtifactMatcher<ApplicationComponentTemplate>("com.java:WAR") {
+        public ApplicationComponentTemplate apply(Object art, AssemblyTemplateConstructor atc, PlatformComponentTemplate target) {
             ApplicationComponentTemplate act = ApplicationComponentTemplate.builder()
                     .name( ((Artifact)art).getName() )
                     .description( ((Artifact)art).getDescription() )
@@ -50,7 +50,7 @@ public class MockWebPlatform {
             
             atc.add(act);
             
-            return true;
+            return act;
         }
     };
     

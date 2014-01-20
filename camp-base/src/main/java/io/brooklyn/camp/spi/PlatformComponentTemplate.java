@@ -1,5 +1,8 @@
 package io.brooklyn.camp.spi;
 
+import io.brooklyn.camp.spi.collection.BasicResourceLookup;
+import io.brooklyn.camp.spi.collection.ResourceLookup;
+
 
 /** Holds the metadata (name, description, etc) for a PCT
  * as well as fields pointing to behaviour (eg creation of PlatformComponent).
@@ -14,6 +17,20 @@ public class PlatformComponentTemplate extends AbstractResource {
     /** Use {@link #builder()} to create */
     protected PlatformComponentTemplate() {}
 
+    // TODO: This should really be part of the builder with the child services being added before the PCT is built,
+    //       however the parent PCT is currently built before the children are added
+    ResourceLookup<PlatformComponentTemplate> platformComponentTemplates;
+
+    public ResourceLookup<PlatformComponentTemplate> getPlatformComponentTemplates() {
+        if (platformComponentTemplates == null) {
+            platformComponentTemplates = new BasicResourceLookup<PlatformComponentTemplate>();
+        }
+        return platformComponentTemplates;
+    }
+
+    public void add(PlatformComponentTemplate x) {
+        ((BasicResourceLookup<PlatformComponentTemplate>)getPlatformComponentTemplates()).add(x);
+    }
     
     // no fields beyond basic resource
     

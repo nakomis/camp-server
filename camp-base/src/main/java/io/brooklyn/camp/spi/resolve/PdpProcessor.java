@@ -1,7 +1,9 @@
 package io.brooklyn.camp.spi.resolve;
 
 import io.brooklyn.camp.CampPlatform;
+import io.brooklyn.camp.spi.AbstractResource;
 import io.brooklyn.camp.spi.AssemblyTemplate;
+import io.brooklyn.camp.spi.PlatformComponentTemplate;
 import io.brooklyn.camp.spi.instantiate.BasicAssemblyTemplateInstantiator;
 import io.brooklyn.camp.spi.pdp.Artifact;
 import io.brooklyn.camp.spi.pdp.AssemblyTemplateConstructor;
@@ -29,7 +31,7 @@ public class PdpProcessor {
 
     final CampPlatform campPlatform;
     
-    final List<PdpMatcher> matchers = new ArrayList<PdpMatcher>();
+    final List<PdpMatcher<? extends AbstractResource>> matchers = new ArrayList<PdpMatcher<? extends AbstractResource>>();
     final List<PlanInterpreter> interpreters = new ArrayList<PlanInterpreter>();
     
     public PdpProcessor(CampPlatform campPlatform) {
@@ -43,7 +45,7 @@ public class PdpProcessor {
         Map<String, Object> dpRootUninterpreted = Yamls.getAs(template, Map.class);
         Map<String, Object> dpRootInterpreted = applyInterpreters(dpRootUninterpreted);
         
-		return DeploymentPlan.of( dpRootInterpreted );
+        return DeploymentPlan.of(dpRootInterpreted);
     }
     
     /** create and return an AssemblyTemplate based on the given DP (yaml) */
@@ -62,13 +64,14 @@ public class PdpProcessor {
         
         if (plan.getServices()!=null) {
             for (Service svc: plan.getServices()) {
-                applyMatchers(svc, atc);
+                PlatformComponentTemplate platformComponentTemplate = (PlatformComponentTemplate)applyMatchers(svc, atc, null);
+                applyChildServices(svc, atc, platformComponentTemplate);
             }
         }
 
         if (plan.getArtifacts()!=null) {
             for (Artifact art: plan.getArtifacts()) {
-                applyMatchers(art, atc);
+                applyMatchers(art, atc, null);
             }
         }
 
@@ -82,6 +85,13 @@ public class PdpProcessor {
             atc.instantiator(BasicAssemblyTemplateInstantiator.class);
 
         return atc.commit();
+    }
+    
+    private void applyChildServices(Service service, AssemblyTemplateConstructor atc, PlatformComponentTemplate pct) {
+    	for (Service childService : service.getServices()) {
+    		PlatformComponentTemplate target = (PlatformComponentTemplate)applyMatchers(childService, atc, pct);
+    		applyChildServices(childService, atc, target);
+    	}
     }
     
     public AssemblyTemplate registerPdpFromArchive(InputStream archiveInput) {
@@ -106,22 +116,23 @@ public class PdpProcessor {
 
     // ----------------------------
     
-    public void addMatcher(PdpMatcher m) {
+    public void addMatcher(PdpMatcher<? extends AbstractResource> m) {
         // TODO a list is a crude way to do matching ... but good enough to start
         matchers.add(m);
     }
 
-    public List<PdpMatcher> getMatchers() {
+    public List<PdpMatcher<? extends AbstractResource>> getMatchers() {
         return matchers;
     }
 
 
-    protected void applyMatchers(Object deploymentPlanItem, AssemblyTemplateConstructor atc) {
-        for (PdpMatcher matcher: getMatchers()) {
+    protected AbstractResource applyMatchers(Object deploymentPlanItem, AssemblyTemplateConstructor atc, PlatformComponentTemplate target) {
+        for (PdpMatcher<? extends AbstractResource> matcher: getMatchers()) {
             if (matcher.accepts(deploymentPlanItem)) {
                 // TODO first accepting is a crude way to do matching ... but good enough to start
-                if (matcher.apply(deploymentPlanItem, atc))
-                    return;
+                AbstractResource result = matcher.apply(deploymentPlanItem, atc, target); 
+                if (result != null)
+                    return result;
             }
         }
         throw new UnsupportedOperationException("Deployment plan item "+deploymentPlanItem+" cannot be matched");

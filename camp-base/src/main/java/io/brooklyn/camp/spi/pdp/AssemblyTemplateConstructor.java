@@ -21,7 +21,7 @@ public class AssemblyTemplateConstructor {
         this.builder = AssemblyTemplate.builder();
         this.transaction = this.campPlatform.transaction();
     }
-    
+
     /** records all the templates to the underlying platform */
     public AssemblyTemplate commit() {
         checkState();

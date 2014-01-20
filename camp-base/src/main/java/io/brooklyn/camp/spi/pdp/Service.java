@@ -20,7 +20,7 @@ public class Service {
     String serviceType;
     
     List<ServiceCharacteristic> characteristics;
-    
+    List<Service> services;
     Map<String,Object> customAttributes;
     
     @SuppressWarnings("unchecked")
@@ -44,7 +44,22 @@ public class Service {
             }
         } else if (chars!=null) {
             // TODO "map" short form
-            throw new IllegalArgumentException("services body should be iterable, not "+chars.getClass());
+            throw new IllegalArgumentException("characteristics body should be iterable, not "+chars.getClass());
+        }
+        
+        result.services = new ArrayList<Service>();
+        Object services = fields.remove("services");
+        if (services instanceof Iterable) {
+            for (Object req : (Iterable<Object>) services) {
+                if (req instanceof Map) {
+                    result.services.add(Service.of((Map<String, Object>) req));
+                } else {
+                    throw new IllegalAccessError("nested service should be a map, not " + req.getClass());
+                }
+            }
+        } else if (services != null) {
+            // TODO "map" short form
+            throw new IllegalArgumentException("services body should be iterable, not " + services.getClass());
         }
         
         result.customAttributes = fields;
@@ -66,6 +81,9 @@ public class Service {
     }
     public Map<String, Object> getCustomAttributes() {
         return ImmutableMap.copyOf(customAttributes);
+    }
+    public List<Service> getServices() {
+    	return ImmutableList.copyOf(services);
     }
     
     @Override
